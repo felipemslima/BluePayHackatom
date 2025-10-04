@@ -21,20 +21,27 @@ def ping():
 # ===============================================================
 @app.route("/tokens/<user_id>", methods=["GET"])
 def list_tokens(user_id):
+    print(f"🔍 Listando tokens para user_id: {user_id}")
     db = get_db()
     cur = db.cursor()
-    cur.execute("""
-        SELECT token_id, denom_cents, state
-        FROM tokens
-        WHERE owner_hint IS NULL OR owner_hint=%s
-        ORDER BY issued_at DESC
-    """, (user_id,))
-    tokens = [
-        {"token_id": str(tid), "denom": denom, "state": state}
-        for tid, denom, state in cur.fetchall()
-    ]
-    cur.close()
-    return jsonify(tokens), 200
+    try:
+        cur.execute("""
+            SELECT token_id, denom_cents, state
+            FROM tokens
+            WHERE owner_hint IS NULL OR owner_hint = %s::uuid
+            ORDER BY issued_at DESC
+        """, (user_id,))
+        tokens = [
+            {"token_id": str(tid), "denom": denom, "state": state}
+            for tid, denom, state in cur.fetchall()
+        ]
+        return jsonify(tokens), 200
+    except Exception as e:
+        db.rollback()
+        print("❌ Erro em list_tokens:", e)
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cur.close()
 
 
 # ===============================================================
@@ -129,3 +136,9 @@ def redeem_token():
         return jsonify({"error": str(e)}), 500
     finally:
         cur.close()
+
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
