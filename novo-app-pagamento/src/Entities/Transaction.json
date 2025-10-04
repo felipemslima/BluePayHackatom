@@ -1,0 +1,64 @@
+{
+  "name": "transaction",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "deposit",
+        "withdrawal",
+        "transfer",
+        "pix",
+        "nfc_payment",
+        "bill_payment"
+      ],
+      "description": "Tipo de transação"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Valor da transação"
+    },
+    "description": {
+      "type": "string",
+      "description": "Descrição da transação"
+    },
+    "recipient": {
+      "type": "string",
+      "description": "Destinatário (nome ou chave PIX)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "pending",
+        "failed"
+      ],
+      "default": "completed",
+      "description": "Status da transação"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "food",
+        "transport",
+        "shopping",
+        "bills",
+        "entertainment",
+        "health",
+        "education",
+        "other"
+      ],
+      "default": "other",
+      "description": "Categoria da transação"
+    },
+    "balance_after": {
+      "type": "number",
+      "description": "Saldo após a transação"
+    }
+  },
+  "required": [
+    "type",
+    "amount",
+    "description"
+  ]
+}

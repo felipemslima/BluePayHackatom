@@ -1,0 +1,214 @@
+import React, { useState, useEffect, useCallback } from "react";
+// REMOVED: Imports for User and Transaction JSON files
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Search, ArrowUpRight, ArrowDownLeft, Smartphone, Filter } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
+const categoryLabels = {
+  food: "Alimentação",
+  transport: "Transporte",
+  shopping: "Compras",
+  bills: "Contas",
+  entertainment: "Entretenimento",
+  health: "Saúde",
+  education: "Educação",
+  other: "Outros",
+};
+
+const getTransactionIcon = (type) => {
+  if (type === "deposit") return <ArrowDownLeft className="w-5 h-5 text-green-400" />;
+  if (type === "nfc_payment") return <Smartphone className="w-5 h-5 text-purple-400" />;
+  return <ArrowUpRight className="w-5 h-5 text-orange-400" />;
+};
+
+// ALTERAÇÃO 1: Criamos uma lista de transações falsas (mock) para a página.
+const mockTransactions = [
+  { id: 1, type: "deposit", amount: 3500.00, description: "Depósito Salário", category: "other", status: "completed", created_date: "2025-10-04T10:00:00Z", balance_after: 12345.67 },
+  { id: 2, type: "pix", amount: 75.50, description: "Almoço com amigos", recipient: "Restaurante Sabor", category: "food", status: "completed", created_date: "2025-10-04T12:30:00Z", balance_after: 12270.17 },
+  { id: 3, type: "nfc_payment", amount: 22.00, description: "Cafeteria Pão Quente", recipient: "Estabelecimento", category: "food", status: "completed", created_date: "2025-10-03T16:45:00Z", balance_after: 12248.17 },
+  { id: 4, type: "transfer", amount: 1500.00, description: "Pagamento Aluguel", recipient: "Imobiliária Central", category: "bills", status: "completed", created_date: "2025-10-03T09:00:00Z", balance_after: 10748.17 },
+  { id: 5, type: "pix", amount: 120.00, description: "Cinema - Fim de Semana", recipient: "Cineplex", category: "entertainment", status: "completed", created_date: "2025-10-02T20:15:00Z", balance_after: 10628.17 },
+  { id: 6, type: "withdrawal", amount: 200.00, description: "Saque em caixa eletrônico", category: "other", status: "completed", created_date: "2025-10-01T14:00:00Z", balance_after: 10428.17 },
+  { id: 7, type: "shopping", amount: 350.80, description: "Roupas novas", recipient: "Loja de Departamentos", category: "shopping", status: "completed", created_date: "2025-09-30T18:30:00Z", balance_after: 10077.37 },
+  { id: 8, type: "deposit", amount: 500.00, description: "Reembolso", category: "other", status: "completed", created_date: "2025-09-29T11:00:00Z", balance_after: 10577.37 },
+];
+
+
+export default function Transactions() {
+  // ALTERAÇÃO 2: O estado do componente agora começa com os dados falsos.
+  const [transactions, setTransactions] = useState(mockTransactions);
+  const [filteredTransactions, setFilteredTransactions] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("all");
+  const [filterCategory, setFilterCategory] = useState("all");
+
+  // ALTERAÇÃO 3: A lógica de carregar dados (useEffect, loadTransactions) foi removida.
+  // A lógica de filtro abaixo já funciona com os dados locais, então não precisa ser alterada.
+
+  const filterTransactions = useCallback(() => {
+    let filtered = transactions;
+
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (t) =>
+          t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          t.recipient?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (filterType !== "all") {
+      filtered = filtered.filter((t) => t.type === filterType);
+    }
+
+    if (filterCategory !== "all") {
+      filtered = filtered.filter((t) => t.category === filterCategory);
+    }
+
+    setFilteredTransactions(filtered);
+  }, [searchTerm, filterType, filterCategory, transactions]);
+
+  useEffect(() => {
+    filterTransactions();
+  }, [filterTransactions]);
+
+  const getTotalByType = (type) => {
+    return transactions
+      .filter((t) => t.type === type)
+      .reduce((sum, t) => sum + t.amount, 0);
+  };
+
+  return (
+    <div className="min-h-screen p-6 md:p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Extrato</h1>
+          <p className="text-gray-400 mt-1">Histórico completo de transações</p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4">
+          <Card className="bg-gradient-to-br from-green-600/20 to-emerald-600/20 border-green-500/30">
+            <CardContent className="p-6">
+              <p className="text-green-400 text-sm mb-2">Total Recebido</p>
+              <p className="text-white text-2xl font-bold">
+                R$ {getTotalByType("deposit").toFixed(2)}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-orange-600/20 to-red-600/20 border-orange-500/30">
+            <CardContent className="p-6">
+              <p className="text-orange-400 text-sm mb-2">Total Gasto</p>
+              <p className="text-white text-2xl font-bold">
+                R$ {(getTotalByType("withdrawal") + getTotalByType("transfer") + getTotalByType("pix") + getTotalByType("nfc_payment") + getTotalByType("shopping")).toFixed(2)}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-600/20 to-pink-600/20 border-purple-500/30">
+            <CardContent className="p-6">
+              <p className="text-purple-400 text-sm mb-2">Transações</p>
+              <p className="text-white text-2xl font-bold">{transactions.length}</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="bg-[#1f2544]/80 backdrop-blur-xl border-white/10">
+          <CardHeader className="border-b border-white/10">
+            <CardTitle className="text-white flex items-center gap-2">
+              <Filter className="w-5 h-5" />
+              Filtros
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Buscar transação..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 bg-white/5 border-white/10 text-white"
+                />
+              </div>
+
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  <SelectItem value="deposit">Depósito</SelectItem>
+                  <SelectItem value="transfer">Transferência</SelectItem>
+                  <SelectItem value="pix">PIX</SelectItem>
+                  <SelectItem value="nfc_payment">NFC</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                  <SelectValue placeholder="Categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas categorias</SelectItem>
+                  {Object.entries(categoryLabels).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#1f2544]/80 backdrop-blur-xl border-white/10">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {filteredTransactions.length === 0 ? (
+                <p className="text-gray-400 text-center py-8">Nenhuma transação encontrada</p>
+              ) : (
+                filteredTransactions.map((transaction) => (
+                  <div
+                    key={transaction.id}
+                    className="flex items-center justify-between p-4 hover:bg-white/5 rounded-xl transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center">
+                        {getTransactionIcon(transaction.type)}
+                      </div>
+                      <div>
+                        <p className="text-white font-medium">{transaction.description}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <p className="text-gray-400 text-sm">
+                            {format(new Date(transaction.created_date), "dd MMM yyyy, HH:mm", { locale: ptBR })}
+                          </p>
+                          {transaction.category && (
+                            <Badge variant="outline" className="text-xs bg-white/5 border-white/10 text-gray-300">
+                              {categoryLabels[transaction.category]}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-bold text-lg ${transaction.type === "deposit" ? "text-green-400" : "text-orange-400"}`}>
+                        {transaction.type === "deposit" ? "+" : "-"}R$ {transaction.amount.toFixed(2)}
+                      </p>
+                      <p className="text-gray-400 text-sm">
+                        Saldo: R$ {transaction.balance_after?.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
