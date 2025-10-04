@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">BluePay</string>
+    <string name="title_activity_main">BluePay</string>
+    <string name="package_name">com.hackatom.bluepay</string>
+    <string name="custom_url_scheme">com.hackatom.bluepay</string>
+</resources>
