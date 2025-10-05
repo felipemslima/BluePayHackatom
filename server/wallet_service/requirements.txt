@@ -1,3 +1,24 @@
-flask
-psycopg2-binary
-python-dotenv
+# -------------------------
+# Core Web Framework
+# -------------------------
+flask==3.0.3
+
+# -------------------------
+# Banco de Dados
+# -------------------------
+psycopg2-binary==2.9.9
+
+# -------------------------
+# Configuração e ambiente
+# -------------------------
+python-dotenv==1.0.1
+
+# -------------------------
+# Criptografia (assinaturas Ed25519)
+# -------------------------
+PyNaCl==1.5.0
+
+# -------------------------
+# Utilitários opcionais / depuração
+# -------------------------
+requests==2.31.0

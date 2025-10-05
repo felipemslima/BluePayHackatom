@@ -1,7 +1,13 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, current_app
 from db import get_db, close_db
 import uuid
 from datetime import datetime
+from issue_tokens import emitir_tokens
+from base64 import b64encode
+import hashlib
+from nacl.signing import SigningKey, VerifyKey
+from issue_tokens import emitir_tokens
+
 
 app = Flask(__name__)
 app.teardown_appcontext(close_db)
@@ -139,6 +145,76 @@ def redeem_token():
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
+
+# ===============================================================
+# 3. Emitir tokens (somente servidor)
+# ===============================================================
+@app.route("/tokens/issue", methods=["POST"])
+def issue_tokens(): # Renomeei de issue_tokens2 para o nome no traceback
+    try:
+        data = request.get_json(force=True)
+        qtd = int(data.get("qtd", 1))
+        
+        # A função emitir_tokens já retorna uma lista de dicionários
+        # com 'payload', 'signature_b64', etc.
+        tokens_emitidos = emitir_tokens(qtd)
+
+        # Você pode retornar essa lista diretamente!
+        return jsonify({
+            "status": "success",
+            "qtd_emitidos": len(tokens_emitidos),
+            "tokens": tokens_emitidos # Retorna a lista completa de tokens gerados
+        }), 201
+
+    except Exception as e:
+        current_app.logger.error(f"Erro ao emitir tokens: {e}", exc_info=True)
+        return jsonify({
+            "status": "error",
+            "message": "Erro interno ao emitir tokens."
+        }), 500
+    
+@app.route("/tokens/issue2", methods=["POST"])
+def issue_tokens2():
+    try:
+        data = request.get_json(force=True)
+        if not data or "qtd" not in data:
+            return jsonify({"status": "error", "message": "Missing 'qtd' in request body"}), 400
+
+        qtd = int(data.get("qtd", 1))
+        if qtd <= 0:
+            return jsonify({"status": "error", "message": "'qtd' must be a positive integer"}), 400
+
+        print(f"🪙 Emitindo {qtd} token(s) de R$1")
+        
+        # A variável 'tokens' agora é usada, embora não seja retornada ao cliente
+        tokens = emitir_tokens(qtd)
+
+        return jsonify({
+            "status": "success",
+            "message": f"{len(tokens)} token(s) issued successfully.",
+            "qtd_emitidos": len(tokens)
+        }), 201
+
+    except ValueError:
+         return jsonify({"status": "error", "message": "'qtd' must be a valid integer"}), 400
+    except Exception as e:
+        # Captura qualquer erro da função emitir_tokens e retorna um erro 500 claro
+        return jsonify({
+            "status": "error",
+            "message": "An internal error occurred while issuing tokens.",
+            "error_details": str(e) # Opcional: não exponha detalhes do erro em produção
+        }), 500
+
+
+# ===============================================================
+# Logging
+@app.before_request
+def log_request_info():
+    app.logger.debug(f"Request: {request.method} {request.url}")
+    app.logger.debug(f"Headers: {request.headers}")
+    app.logger.debug(f"Body: {request.get_data()}")
+# ===============================================================
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
