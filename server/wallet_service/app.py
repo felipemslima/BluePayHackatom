@@ -173,38 +173,6 @@ def issue_tokens(): # Renomeei de issue_tokens2 para o nome no traceback
             "message": "Erro interno ao emitir tokens."
         }), 500
     
-@app.route("/tokens/issue2", methods=["POST"])
-def issue_tokens2():
-    try:
-        data = request.get_json(force=True)
-        if not data or "qtd" not in data:
-            return jsonify({"status": "error", "message": "Missing 'qtd' in request body"}), 400
-
-        qtd = int(data.get("qtd", 1))
-        if qtd <= 0:
-            return jsonify({"status": "error", "message": "'qtd' must be a positive integer"}), 400
-
-        print(f"🪙 Emitindo {qtd} token(s) de R$1")
-        
-        # A variável 'tokens' agora é usada, embora não seja retornada ao cliente
-        tokens = emitir_tokens(qtd)
-
-        return jsonify({
-            "status": "success",
-            "message": f"{len(tokens)} token(s) issued successfully.",
-            "qtd_emitidos": len(tokens)
-        }), 201
-
-    except ValueError:
-         return jsonify({"status": "error", "message": "'qtd' must be a valid integer"}), 400
-    except Exception as e:
-        # Captura qualquer erro da função emitir_tokens e retorna um erro 500 claro
-        return jsonify({
-            "status": "error",
-            "message": "An internal error occurred while issuing tokens.",
-            "error_details": str(e) # Opcional: não exponha detalhes do erro em produção
-        }), 500
-
 
 # ===============================================================
 # Logging

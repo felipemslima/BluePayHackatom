@@ -69,5 +69,41 @@ Cada token é emitido com um payload canônico:
   "issuer_pubkey": "tIv5wPAmF2u...",
   "token_id": "90b2cfc6-28d1-4789-a4f7-2aa14e079ca4"
 }
+```
+
+## 📱 Aplicativo Android
+Idealização da estrutura do nosso app, feito em react para web depois convertido em um app android. pode ser instalado via .apk.
+Por questão de tempo não foram implementadas as conexões com backend e a funcionalidade de transferência
+
+## 🧰 Instalação e Execução
+### 1️⃣ Clonar o repositório
+```
+git clone https://github.com/<seu-user>/BluePayHackatom.git
+cd BluePayHackatom
+``` 
+
+###2️⃣ Subir containers
+``` 
+docker compose up --build
+``` 
 
 
+###3️⃣ Testes 
+Esse teste simula a transação entre duas pessoas.
+Cliente 1 gera tokens, guarda no seu próprio banco de dados, assina e transfere para o Cliente 2 (guarda em uma variável).
+Cliente 2 verifica a assinatura e faz envia solicitação de redeem.
+``` 
+python client_wallet.py
+``` 
+
+## 🧩 Endpoints da API
+
+| **Método** | **Endpoint** | **Descrição** |
+|:-----------:|:-------------|:--------------|
+| `POST` | `/new_user` | Cria um novo usuário com `user_id`, `kyc_level`, e `status`. |
+| `POST` | `/new_device` | Registra um dispositivo vinculado a um usuário. |
+| `POST` | `/create_account` | Cria uma conta (carteira) vinculada ao usuário. |
+| `POST` | `/tokens/issue` | Emite *n* tokens assinados pelo servidor. |
+| `POST` | `/redeem` | Realiza o resgate com verificação completa da assinatura. |
+| `POST` | `/redeem2` | Resgate simplificado — apenas verifica existência do token. |
+| `GET`  | `/_debug/token/<token_id>` | Retorna o estado atual do token no servidor. |
