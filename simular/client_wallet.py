@@ -69,8 +69,8 @@ CLIENT1_SK, CLIENT1_PK_B64 = generate_key_pair("client1")
 CLIENT2_SK, CLIENT2_PK_B64 = generate_key_pair("client2")
 
 # IDs Reais do Cliente 2 (Redentor)
-CLIENT2_USER_ID = "33333333-3333-3333-3333-333333333333" 
-CLIENT2_DEVICE_ID = "bbbbbbb2-bbbb-bbbb-bbbb-bbbbbbbbbbbc"
+CLIENT2_USER_ID = "22222222-2222-2222-2222-222222222222" 
+CLIENT2_DEVICE_ID = "bbbbbbb2-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
 
 
 # --- 3. FUNÇÕES DE BANCO DE DADOS (CARTEIRA) ---
@@ -338,8 +338,6 @@ def flow_3_redeem_token(encrypted_data_p2p, original_token_id):
         "token_signature_b64": signature_b64
     }
 
-    print(redeem_request)
-
     print(f"   -> Enviando requisição de resgate para o servidor...")
     conn, cursor = setup_db(WALLET_DB) 
 
@@ -363,10 +361,6 @@ def flow_3_redeem_token(encrypted_data_p2p, original_token_id):
 if __name__ == "__main__":
     print("\n🚀 Inicializando fluxo da carteira...")
 
-    # 0️⃣ Garante que o CLIENTE 2 (recebedor) existe no servidor
-    ensure_user_exists(CLIENT2_USER_ID, kyc_level="basic", status="active")
-    ensure_device_exists(CLIENT2_USER_ID, CLIENT2_DEVICE_ID, CLIENT2_PK_B64)
-    ensure_account_exists(CLIENT2_USER_ID)
 
     # 1️⃣ Client 1 (Carteira) solicita emissão de tokens
     flow_1_issue_tokens(QTD_TOKENS)
