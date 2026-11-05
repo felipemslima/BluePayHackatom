@@ -1,109 +1,97 @@
-# 💳 BluePay — Sistema de Pagamentos Offline (Hackatom 2025)
+# BluePay — Offline Digital Payments
 
-> Prova de conceito (PoC) de **pagamentos digitais offline** com tokens criptograficamente assinados.  
-> O projeto demonstra a emissão, transferência e resgate de cédulas digitais entre carteiras **sem conexão contínua com o servidor**.
+> Proof of concept built in 48 h at **Hackatom 2025**: digital "banknotes" that can change hands **without an internet connection** and are settled later, with double-spend protection on the server.
 
----
+<!-- TODO: add a screenshot or GIF of the app here -->
 
-## 📘 Visão Geral
+## The problem
 
-O sistema é composto por **dois componentes principais**:
+Digital payments stop working when the network does: rural areas, transit, outages, crowded events. Cash works offline, but it is not digital. BluePay explores a middle ground: **signed digital tokens** that behave like cash between two phones and get reconciled with the bank once anyone goes back online.
 
-1. 🖥️ **Servidor Flask (`server-wallet-service`)**
-   - Emite tokens assinados (`/tokens/issue`)
-   - Garante unicidade e rastreabilidade no resgate (`/redeem`)
-   - Mantém base de dados **PostgreSQL** com controle contábil de duplo lançamento
+## How it works
 
-2. 💼 **Cliente (`client_wallet.py`)**
-   - Solicita tokens emitidos pelo servidor
-   - Armazena localmente em uma `wallet.db` (SQLite)
-   - Transfere tokens P2P (criptografia simétrica simulada)
-   - Resgata o token no servidor para crédito em conta
-
----
-
-## ⚙️ Arquitetura
-    ┌──────────────────────────┐
-    │        Servidor          │
-    │  Flask + PostgreSQL      │
-    │                          │
-    │ /new_user                │
-    │ /new_device              │
-    │ /create_account          │
-    │ /tokens/issue            │
-    │ /redeem                  │
-    └──────────┬───────────────┘
-               │ HTTP (REST)
-               ▼
-    ┌──────────────────────────┐
-    │        Cliente           │
-    │  Python + SQLite         │
-    │                          │
-    │  flow_1_issue_tokens()   │
-    │  flow_2_offline_transfer(│
-    │  flow_3_redeem_token()   │
-    └──────────────────────────┘
-
-
----
-
-## 🧩 Componentes
-
-### 🗄️ Banco de Dados (`PostgreSQL`)
-
-- Banco: `offlinepay`
-- Usuário padrão: `admin` / `admin123`
-- Tabelas principais:
-  - `users`, `devices`, `accounts`
-  - `tokens`, `redemptions`, `redemption_items`
-  - `ledger_entries`
-
-### 💰 Tokens digitais
-
-Cada token é emitido com um payload canônico:
-
-```json
-{
-  "denom_cents": 100,
-  "issued_at": "2025-10-05T12:30:45Z",
-  "issuer_pubkey": "tIv5wPAmF2u...",
-  "token_id": "90b2cfc6-28d1-4789-a4f7-2aa14e079ca4"
-}
+```
+ ┌────────────┐  1. issue (online)   ┌──────────────────────┐
+ │  Wallet A  │ ◄─────────────────── │   Wallet service     │
+ │  (SQLite)  │   Ed25519-signed     │   Flask + PostgreSQL │
+ └─────┬──────┘   tokens             └──────────▲───────────┘
+       │ 2. transfer P2P (offline)              │
+       │    token encrypted for B               │ 3. redeem (online)
+       ▼                                        │    verify signature,
+ ┌────────────┐                                 │    reject double spend,
+ │  Wallet B  │ ────────────────────────────────┘    post to ledger
+ └────────────┘
 ```
 
-## 📱 Aplicativo Android
-Idealização da estrutura do nosso app, feito em react para web depois convertido em um app android. pode ser instalado via .apk.
-Por questão de tempo não foram implementadas as conexões com backend e a funcionalidade de transferência
+1. **Issue** — the server mints tokens with a fixed denomination and signs a canonical payload with its **Ed25519** key.
+   ```json
+   { "token_id": "90b2cfc6-…", "denom_cents": 100,
+     "issued_at": "2025-10-05T12:30:45Z", "issuer_pubkey": "tIv5wPAm…" }
+   ```
+2. **Transfer offline** — wallet A encrypts the token for wallet B (NaCl `SecretBox`). Wallet B **verifies the issuer signature locally**, so it does not need to call the server to trust the token.
+3. **Redeem** — when B is online, the server checks the signature and the token state (`ISSUED → REDEEMED`). An idempotency key per request and a unique constraint per token **block double spending**. The credit is then posted to a **double-entry ledger**.
 
-## 🧰 Instalação e Execução
-### 1️⃣ Clonar o repositório
+## Highlights
+
+- **Ed25519 signatures** (PyNaCl) over a canonical JSON payload
+- PostgreSQL schema with token lifecycle (`ISSUED / REDEEMED / REVOKED / EXPIRED`), device registry with attested public keys, idempotent redemptions and `ledger_entries` (debit/credit)
+- Dockerized backend (`docker compose up`)
+- End-to-end simulation script that runs the full issue → transfer → redeem flow between two wallets
+- Mobile UI prototype in React + Tailwind, packaged for Android with **Capacitor**
+
+## Stack
+
+`Python` · `Flask` · `PostgreSQL` · `PyNaCl (Ed25519)` · `SQLite` · `Docker` · `React` · `Vite` · `Tailwind` · `Capacitor`
+
+## Repository layout
+
 ```
-git clone https://github.com/<seu-user>/BluePayHackatom.git
-cd BluePayHackatom
-``` 
+server/
+├── docker-compose.yml        # PostgreSQL + wallet service
+├── init/01_schema.sql        # tokens, redemptions, double-entry ledger
+└── wallet_service/           # Flask API, key generation, token issuing
+simular/
+└── client_wallet.py          # two-wallet simulation of the full flow
+aplicativo/                   # React mobile UI → Android via Capacitor
+```
 
-###2️⃣ Subir containers
-``` 
-docker compose up --build
-``` 
+## Running
 
+```bash
+# 1. config: copy the example and generate the server's signing keys
+cp server/wallet_service/.env.example server/wallet_service/.env
+pip install pynacl
+python server/wallet_service/gen_keys.py >> server/wallet_service/.env
 
-###3️⃣ Testes 
-Esse teste simula a transação entre duas pessoas.
-Cliente 1 gera tokens, guarda no seu próprio banco de dados, assina e transfere para o Cliente 2 (guarda em uma variável).
-Cliente 2 verifica a assinatura e faz envia solicitação de redeem.
-``` 
-python client_wallet.py
-``` 
+# 2. start PostgreSQL + API (http://localhost:5000)
+cd server && docker compose up --build
 
-## 🧩 Endpoints da API
+# 3. in another terminal: simulate two people exchanging a token
+export SERVER_PK_B64=<same public key as in .env>
+python simular/client_wallet.py
+```
 
-| **Método** | **Endpoint** | **Descrição** |
-|:-----------:|:-------------|:--------------|
-| `POST` | `/new_user` | Cria um novo usuário com `user_id`, `kyc_level`, e `status`. |
-| `POST` | `/new_device` | Registra um dispositivo vinculado a um usuário. |
-| `POST` | `/create_account` | Cria uma conta (carteira) vinculada ao usuário. |
-| `POST` | `/tokens/issue` | Emite *n* tokens assinados pelo servidor. |
-| `POST` | `/redeem` | Realiza o resgate com verificação completa da assinatura. |
-| `POST` | `/redeem2` | Resgate simplificado — apenas verifica existência do token. |
-| `GET`  | `/_debug/token/<token_id>` | Retorna o estado atual do token no servidor. |
+The Android UI prototype can be installed from the [Releases page](https://github.com/felipemslima/BluePayHackatom/releases).
+
+### API
+
+| Method | Endpoint | Description |
+|:--:|---|---|
+| `POST` | `/new_user` | Create a user (`kyc_level`, `status`) |
+| `POST` | `/new_device` | Register a device and its public key |
+| `POST` | `/create_account` | Create a wallet account for a user |
+| `POST` | `/tokens/issue` | Mint *n* signed tokens |
+| `POST` | `/redeem` | Redeem with full signature + state verification |
+| `GET`  | `/tokens/<user_id>` | List a user's tokens |
+
+## Status and limitations
+
+This is a hackathon PoC, not production code:
+
+- The mobile app is a **UI prototype**. It is not yet wired to the backend or the P2P transfer.
+- The P2P channel is simulated in the script; a real version would use NFC/Bluetooth/QR.
+- Offline double spending can only be **detected at redemption**, not prevented. A real system needs hardware-backed keys on the device and spending limits.
+
+## Team
+
+Built at Hackatom 2025 by Felipe Martins Silveira Lima (backend, database, app) and Rennan Santos Nascimento (token signing).

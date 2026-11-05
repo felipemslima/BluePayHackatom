@@ -16,7 +16,7 @@ if os.path.exists("wallet.db"):
 # --- CHAVE PÚBLICA DO SERVIDOR (PARA FINS DIDÁTICOS) ---
 # Substitua pelo valor real da sua chave pública do servidor.
 # O cliente usa esta chave para verificar a autenticidade dos tokens.
-SERVER_PK_B64 = "tIv5wPAmF2uiuDwqWKdWXGdbFRtG2d4I0sYUs8IlvfA=" 
+SERVER_PK_B64 = os.environ["SERVER_PK_B64"]  # same value as server/wallet_service/.env
 
 # --- 1. CONFIGURAÇÕES GLOBAIS ---
 FLASK_HOST = "http://localhost:5000"

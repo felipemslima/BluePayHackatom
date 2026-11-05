@@ -1,0 +1,11 @@
+# secrets
+.env
+!.env.example
+
+# python
+__pycache__/
+*.pyc
+
+# build artifacts
+*.apk
+node_modules/
